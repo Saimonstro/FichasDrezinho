@@ -1,0 +1,76 @@
+body {
+  background-color: #f0f0f0;
+  font-family: Arial, sans-serif;
+  color: #333;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+}
+
+.input-group {
+  display: flex;
+  gap: 5px;
+}
+
+input,
+textarea,
+button {
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  margin-bottom: 5px;
+}
+
+button {
+  cursor: pointer;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+}
+
+button:hover {
+  background-color: #45a049;
+}
+
+.error-message {
+  color: red;
+  font-size: 0.9em;
+  margin-top: 10px;
+}
+
+.button-group {
+  margin-top: 5px; /* Margem superior de 5px */
+}
+
+#historico,
+#name-list {
+  margin-top: 20px;
+  list-style-type: none;
+  padding: 0;
+}
+
+#historico li,
+#name-list li {
+  background: white;
+  margin: 5px 0;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex; /* Usar flexbox */
+  align-items: center; /* Alinha os itens no centro */
+}
+
+#historico li div,
+#name-list li div {
+  margin-left: auto; /* Para manter o espaço à direita */
+}
+
+#historico li button,
+#name-list li button {
+  margin-left: 5px; /* Distância lateral de 5px entre botões */
+  margin-right: 5px;
+}
