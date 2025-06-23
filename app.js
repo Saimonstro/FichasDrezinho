@@ -93,7 +93,10 @@ document.getElementById("save").addEventListener("click", async function () {
   const originalNome =
     document.getElementById("nome").dataset.originalNome || "";
 
-  if (isEditing || (await isUniqueName(nome))) {
+  const nameChanged = isEditing && nome !== originalNome;
+  const isUnique = await isUniqueName(nome);
+
+  if ((!isEditing && isUnique) || (isEditing && (!nameChanged || isUnique))) {
     await saveToDatabase(fichaData, isEditing, originalNome); // Passa flag de edição
     addToHistorico(fichaData);
 
