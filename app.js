@@ -90,8 +90,8 @@ document.getElementById("save").addEventListener("click", function () {
     if (!isEditing) {
       createNameListItem(nome, fichas, observacoes); // Adiciona à lista de nomes cadastrados
     } else {
-      // Atualiza a exibição da lista
-      updateNameListItem(nome, fichas, observacoes);
+      // Atualiza a exibição da lista usando o nome original para localizar o item
+      updateNameListItem(originalNome, nome, fichas, observacoes);
     }
 
     // Limpa os campos após salvar
@@ -234,6 +234,7 @@ document.getElementById("show-users").addEventListener("click", function () {
 function createNameListItem(nome, fichas, observacoes) {
   const nameList = document.getElementById("name-list");
   const listItem = document.createElement("li");
+  listItem.dataset.nome = nome; // Facilita localizar o item posteriormente
   listItem.innerHTML = `
       <button class="edit-button" data-nome="${nome}" data-fichas="${fichas}" data-observacoes="${observacoes}">Editar</button>
       <button class="delete-button" data-nome="${nome}">Deletar</button>
@@ -268,28 +269,29 @@ function deleteUser(nome) {
 }
 
 // Função para atualizar um item da lista de nomes
-function updateNameListItem(nome, fichas, observacoes) {
+function updateNameListItem(originalNome, novoNome, fichas, observacoes) {
   const items = document.querySelectorAll("#name-list li");
   items.forEach((item) => {
-    if (item.textContent.includes(nome)) {
+    if (item.dataset.nome === originalNome) {
+      item.dataset.nome = novoNome;
       item.innerHTML = `
-              <button class="edit-button" data-nome="${nome}" data-fichas="${fichas}" data-observacoes="${observacoes}">Editar</button>
-              <button class="delete-button" data-nome="${nome}">Deletar</button>
-              ${nome} - Fichas: ${fichas}, Observações: ${observacoes}
+              <button class="edit-button" data-nome="${novoNome}" data-fichas="${fichas}" data-observacoes="${observacoes}">Editar</button>
+              <button class="delete-button" data-nome="${novoNome}">Deletar</button>
+              ${novoNome} - Fichas: ${fichas}, Observações: ${observacoes}
           `;
       // Adiciona novamente os eventos de editar e deletar
       item.querySelector(".edit-button").addEventListener("click", function () {
-        document.getElementById("nome").value = nome;
+        document.getElementById("nome").value = novoNome;
         document.getElementById("fichas").value = fichas;
         document.getElementById("observacoes").value = observacoes;
         document.getElementById("nome").dataset.isEditing = "true"; // Marca como edição
-        document.getElementById("nome").dataset.originalNome = nome; // Armazena o nome original
+        document.getElementById("nome").dataset.originalNome = novoNome; // Armazena o nome original
       });
 
       item
         .querySelector(".delete-button")
         .addEventListener("click", function () {
-          deleteUser(nome);
+          deleteUser(novoNome);
           document.getElementById("name-list").removeChild(item); // Remove o item da lista
         });
     }
