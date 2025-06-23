@@ -33,13 +33,23 @@ document.getElementById("unlock-admin").addEventListener("click", function () {
 // Variável para manter o valor das fichas (agora pode ser negativo)
 let fichas = 0;
 
+// Recupera o histórico do servidor
+async function fetchHistorico() {
+  const response = await fetch('/api/historico');
+  if (!response.ok) {
+    console.error('Erro ao carregar histórico');
+    return [];
+  }
+  return await response.json();
+}
+
 // Função para definir o valor inicial de fichas
 document.getElementById("fichas").addEventListener("input", function () {
   fichas = parseInt(this.value) || 0;
 });
 
 // Função para salvar os dados no banco de dados
-document.getElementById("save").addEventListener("click", function () {
+document.getElementById("save").addEventListener("click", async function () {
   const nome = document.getElementById("nome").value;
   const observacoes = document.getElementById("observacoes").value;
 
@@ -83,15 +93,15 @@ document.getElementById("save").addEventListener("click", function () {
   const originalNome =
     document.getElementById("nome").dataset.originalNome || "";
 
-  if (isEditing || isUniqueName(nome)) {
-    saveToDatabase(fichaData, isEditing, originalNome); // Passa flag de edição
+  if (isEditing || (await isUniqueName(nome))) {
+    await saveToDatabase(fichaData, isEditing, originalNome); // Passa flag de edição
     addToHistorico(fichaData);
 
     if (!isEditing) {
       createNameListItem(nome, fichas, observacoes); // Adiciona à lista de nomes cadastrados
     } else {
-      // Atualiza a exibição da lista
-      updateNameListItem(nome, fichas, observacoes);
+      // Atualiza a exibição da lista usando o nome original para localizar o item
+      updateNameListItem(originalNome, nome, fichas, observacoes);
     }
 
     // Limpa os campos após salvar
@@ -108,8 +118,8 @@ document.getElementById("save").addEventListener("click", function () {
 });
 
 // Função para verificar se o nome é único
-function isUniqueName(nome) {
-  const historico = JSON.parse(localStorage.getItem("historico")) || [];
+async function isUniqueName(nome) {
+  const historico = await fetchHistorico();
   return !historico.some(
     (item) => item.nome.toLowerCase() === nome.toLowerCase()
   );
@@ -127,31 +137,20 @@ function addToHistorico(data) {
 }
 
 // Função simulada para salvar os dados em um banco (ajustado para DD-MM-YYYY)
-function saveToDatabase(data, isEditing = false, originalNome = "") {
+async function saveToDatabase(data, isEditing = false, originalNome = "") {
   console.log("Salvando no banco de dados...", data);
 
-  let historico = JSON.parse(localStorage.getItem("historico")) || [];
-
-  if (isEditing) {
-    // Encontra e atualiza o registro se estiver editando
-    historico = historico.map((item) => {
-      if (item.nome === originalNome) {
-        return data; // Substitui os dados antigos pelos novos
-      }
-      return item;
-    });
-  } else {
-    // Caso contrário, adiciona um novo registro
-    historico.push(data);
-  }
-
-  localStorage.setItem("historico", JSON.stringify(historico));
+  await fetch('/api/historico', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...data, isEditing, originalNome })
+  });
 }
 
 // Função para mostrar o histórico e permitir filtragem
 document
   .getElementById("show-historico")
-  .addEventListener("click", function () {
+  .addEventListener("click", async function () {
     const historicoList = document.getElementById("historico");
     const filterNome = document
       .getElementById("filter-nome")
@@ -161,7 +160,7 @@ document
     historicoList.innerHTML = ""; // Limpa o histórico anterior
 
     // Filtra o histórico com base no nome e na data
-    const historico = JSON.parse(localStorage.getItem("historico")) || [];
+    const historico = await fetchHistorico();
     const filteredHistorico = historico.filter((item) => {
       const matchesNome = filterNome
         ? item.nome.toLowerCase().includes(filterNome)
@@ -208,11 +207,11 @@ document
   });
 
 // Função para mostrar a lista de usuários cadastrados
-document.getElementById("show-users").addEventListener("click", function () {
+document.getElementById("show-users").addEventListener("click", async function () {
   const nameList = document.getElementById("name-list");
   nameList.innerHTML = ""; // Limpa a lista anterior
 
-  const historico = JSON.parse(localStorage.getItem("historico")) || [];
+  const historico = await fetchHistorico();
 
   // Ordena os usuários alfabeticamente pelo nome
   const sortedHistorico = historico.sort((a, b) => {
@@ -234,6 +233,7 @@ document.getElementById("show-users").addEventListener("click", function () {
 function createNameListItem(nome, fichas, observacoes) {
   const nameList = document.getElementById("name-list");
   const listItem = document.createElement("li");
+  listItem.dataset.nome = nome; // Facilita localizar o item posteriormente
   listItem.innerHTML = `
       <button class="edit-button" data-nome="${nome}" data-fichas="${fichas}" data-observacoes="${observacoes}">Editar</button>
       <button class="delete-button" data-nome="${nome}">Deletar</button>
@@ -254,42 +254,43 @@ function createNameListItem(nome, fichas, observacoes) {
   // Evento para deletar o registro
   listItem
     .querySelector(".delete-button")
-    .addEventListener("click", function () {
-      deleteUser(nome);
+    .addEventListener("click", async function () {
+      await deleteUser(nome);
       nameList.removeChild(listItem); // Remove o item da lista
     });
 }
 
 // Função para deletar um usuário do histórico
-function deleteUser(nome) {
-  let historico = JSON.parse(localStorage.getItem("historico")) || [];
-  historico = historico.filter((item) => item.nome !== nome); // Filtra o histórico
-  localStorage.setItem("historico", JSON.stringify(historico)); // Atualiza o localStorage
+async function deleteUser(nome) {
+  await fetch(`/api/historico?nome=${encodeURIComponent(nome)}`, {
+    method: 'DELETE'
+  });
 }
 
 // Função para atualizar um item da lista de nomes
-function updateNameListItem(nome, fichas, observacoes) {
+function updateNameListItem(originalNome, novoNome, fichas, observacoes) {
   const items = document.querySelectorAll("#name-list li");
   items.forEach((item) => {
-    if (item.textContent.includes(nome)) {
+    if (item.dataset.nome === originalNome) {
+      item.dataset.nome = novoNome;
       item.innerHTML = `
-              <button class="edit-button" data-nome="${nome}" data-fichas="${fichas}" data-observacoes="${observacoes}">Editar</button>
-              <button class="delete-button" data-nome="${nome}">Deletar</button>
-              ${nome} - Fichas: ${fichas}, Observações: ${observacoes}
+              <button class="edit-button" data-nome="${novoNome}" data-fichas="${fichas}" data-observacoes="${observacoes}">Editar</button>
+              <button class="delete-button" data-nome="${novoNome}">Deletar</button>
+              ${novoNome} - Fichas: ${fichas}, Observações: ${observacoes}
           `;
       // Adiciona novamente os eventos de editar e deletar
       item.querySelector(".edit-button").addEventListener("click", function () {
-        document.getElementById("nome").value = nome;
+        document.getElementById("nome").value = novoNome;
         document.getElementById("fichas").value = fichas;
         document.getElementById("observacoes").value = observacoes;
         document.getElementById("nome").dataset.isEditing = "true"; // Marca como edição
-        document.getElementById("nome").dataset.originalNome = nome; // Armazena o nome original
+        document.getElementById("nome").dataset.originalNome = novoNome; // Armazena o nome original
       });
 
       item
         .querySelector(".delete-button")
-        .addEventListener("click", function () {
-          deleteUser(nome);
+        .addEventListener("click", async function () {
+          await deleteUser(novoNome);
           document.getElementById("name-list").removeChild(item); // Remove o item da lista
         });
     }
