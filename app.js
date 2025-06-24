@@ -292,8 +292,8 @@ function updateNameListItem(originalNome, novoNome, fichas, observacoes) {
 
       item
         .querySelector(".delete-button")
-        .addEventListener("click", async function () {
-          await deleteUser(novoNome);
+        .addEventListener("click", function () {
+          deleteUser(novoNome);
           document.getElementById("name-list").removeChild(item); // Remove o item da lista
         });
     }
